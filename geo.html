@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        alert('Testing Geolocation API...');
+        
+        if ("geolocation" in navigator) {
+            alert('✅ Geolocation API IS AVAILABLE');
+            
+            // Try to get location
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // SUCCESS - Got location
+                    alert('🚨 CRITICAL: Got location!\n' +
+                          'Lat: ' + position.coords.latitude + '\n' +
+                          'Lon: ' + position.coords.longitude + '\n' +
+                          'Accuracy: ' + position.coords.accuracy + 'm');
+                },
+                function(error) {
+                    // FAILED - Permission denied or error
+                    alert('❌ Location access denied/blocked\n' +
+                          'Error: ' + error.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert('❌ Geolocation API not available');
+        }
+    </script>
+    
+    <h1>Location Test</h1>
+    <p>Check alert for geolocation status...</p>
+</body>
+</html>
