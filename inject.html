@@ -1,0 +1,17 @@
+<script>
+// 1. FIRST: Inject test tokens into localStorage
+localStorage.setItem('auth_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+localStorage.setItem('refresh_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgUmVmcmVzaCIsImlhdCI6MTUxNjIzOTAyMn0.test-refresh-token-12345');
+localStorage.setItem('user_session', 'session_id_789012');
+localStorage.setItem('api_key', 'sk_test_51abc123');
+
+// 2. SECOND: Now steal and show what we "found"
+var stolen = [];
+for(var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    var value = localStorage.getItem(key);
+    stolen.push(key + ': ' + value.substring(0, 30) + '...');
+}
+
+alert('🔐 Injected & Stolen Tokens:\n\n' + stolen.join('\n\n'));
+</script>
