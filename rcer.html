@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Find Real Flutter Bridge</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        .bridge { color: #ff0; font-weight: bold; }
+        .danger { color: red; }
+    </style>
+</head>
+<body>
+    <h2 class="danger">🎯 Finding Flutter JavaScript Bridge</h2>
+    <div id="log"></div>
+    
+    <script>
+        var log = document.getElementById('log');
+        log.innerHTML = 'Scanning for Flutter bridges...<br><hr>';
+        
+        // Look for NON-STANDARD objects (not part of normal browser)
+        var standardObjects = [
+            'window', 'document', 'navigator', 'console', 'location',
+            'history', 'screen', 'localStorage', 'sessionStorage',
+            'parent', 'top', 'self', 'frames', 'eval', 'XMLHttpRequest',
+            'FileReader', 'ReadableStream', 'WritableStream', 'Event',
+            'Promise', 'Array', 'Object', 'String', 'Number', 'Boolean',
+            'Date', 'Math', 'JSON', 'RegExp', 'Error', 'Set', 'Map',
+            'WeakSet', 'WeakMap', 'ArrayBuffer', 'DataView', 'Int8Array',
+            'Uint8Array', 'Float32Array', 'Symbol', 'Proxy', 'Reflect'
+        ];
+        
+        var foundBridges = [];
+        
+        for(var key in window) {
+            // Skip standard browser objects
+            if(standardObjects.includes(key)) continue;
+            
+            try {
+                var obj = window[key];
+                if(obj && typeof obj === 'object') {
+                    foundBridges.push({
+                        name: key,
+                        type: typeof obj,
+                        methods: Object.getOwnPropertyNames(obj).slice(0, 10) // First 10 methods
+                    });
+                }
+            } catch(e) {}
+        }
+        
+        // Display results
+        if(foundBridges.length === 0) {
+            log.innerHTML += '❌ No non-standard objects found<br>';
+            log.innerHTML += 'Trying common Flutter bridge names...<br><br>';
+            
+            // Try common names directly
+            var commonNames = [
+                'flutter', 'Flutter', 'flutter_inappwebview',
+                'Android', 'android', 'App', 'channel', 'JSBridge',
+                'webview', 'WebView', 'native', 'Native', 'bridge',
+                'Bridge', 'js', 'JS', 'platform', 'Platform'
+            ];
+            
+            commonNames.forEach(name => {
+                if(window[name]) {
+                    log.innerHTML += '✅ Found: <span class="bridge">window.' + name + '</span><br>';
+                    var methods = Object.getOwnPropertyNames(window[name]);
+                    log.innerHTML += 'Methods: ' + methods.join(', ') + '<br><br>';
+                    
+                    // Try to call it
+                    try {
+                        var result = window[name]('{"method":"test"}');
+                        log.innerHTML += 'Call result: ' + result + '<br>';
+                    } catch(e) {
+                        log.innerHTML += 'Call error: ' + e.message + '<br>';
+                    }
+                }
+            });
+        } else {
+            log.innerHTML += '✅ Found ' + foundBridges.length + ' non-standard objects:<br><br>';
+            
+            foundBridges.forEach(bridge => {
+                log.innerHTML += '<span class="bridge">📌 ' + bridge.name + '</span><br>';
+                log.innerHTML += 'Methods: ' + bridge.methods.join(', ') + '<br>';
+                
+                // Try a simple call
+                try {
+                    var testResult = window[bridge.name]('test');
+                    log.innerHTML += 'Simple call: ' + testResult + '<br>';
+                } catch(e) {}
+                
+                log.innerHTML += '<br>';
+            });
+        }
+        
+        log.innerHTML += '<hr>';
+        log.innerHTML += '<h3 class="danger">🚀 DIRECT FLUTTER BRIDGE TEST</h3>';
+        
+        // Direct test for Flutter's common bridge
+        setTimeout(() => {
+            if(window.flutter_inappwebview) {
+                log.innerHTML += '🔍 flutter_inappwebview FOUND!<br>';
+                // This is a common Flutter WebView plugin
+                try {
+                    window.flutter_inappwebview.callHandler('handlerName', 'id')
+                        .then(function(result) {
+                            log.innerHTML += '✅ Handler result: ' + result + '<br>';
+                        });
+                } catch(e) {
+                    log.innerHTML += 'Error: ' + e.message + '<br>';
+                }
+            }
+            
+            // Try window.$flutterHandler (another common pattern)
+            if(window.$flutterHandler) {
+                log.innerHTML += '🔍 $flutterHandler FOUND!<br>';
+                try {
+                    window.$flutterHandler.postMessage('id');
+                } catch(e) {}
+            }
+        }, 1000);
+        
+        // Last resort: check the entire window object
+        log.innerHTML += '<br>🔍 Full scan (this may take a moment)...<br>';
+        
+        setTimeout(() => {
+            var allProps = [];
+            for(var prop in window) {
+                allProps.push(prop);
+            }
+            
+            // Look for patterns
+            var flutterLike = allProps.filter(p => 
+                p.toLowerCase().includes('flutter') ||
+                p.toLowerCase().includes('android') ||
+                p.toLowerCase().includes('channel') ||
+                p.toLowerCase().includes('bridge') ||
+                p.toLowerCase().includes('native') ||
+                p.toLowerCase().includes('webview')
+            );
+            
+            if(flutterLike.length > 0) {
+                log.innerHTML += '<br>🎯 Flutter-like properties:<br>';
+                flutterLike.forEach(prop => {
+                    log.innerHTML += '• ' + prop + '<br>';
+                });
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
