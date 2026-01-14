@@ -1,5 +1,5 @@
 <?php
-$collab = "YOUR-COLLABORATOR.burpcollaborator.net";
+$collab = "dxe3akxhasv14oojuqruq6loofu6i96y.oastify.com";
 
 // Method 1: Ping (Linux/Unix)
 echo "Testing ping...\n";
